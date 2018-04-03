@@ -1,0 +1,234 @@
+<html>
+  <head>
+    <title>LAZY LOADING</title>
+
+    <style>
+      body {
+        margin: 0;
+      }
+
+      .big-div {
+        position: relative;
+        height: 1500px;
+        background-color: rgb(120,120,120);
+      }
+
+      .item-to-move {
+        position: absolute;
+        top: 300px;
+        width: 400px;
+        height: 40px;
+        left: 400px;
+        background-color: red;
+      }
+
+      .another-div {
+        height: 1200px;
+        position: relative;
+      }
+
+      .another-item-to-move {
+        position: absolute;
+        top: 400px;
+        width: 300px;
+        height: 100px;
+        left: 300px;
+        background-color: blue;
+      }
+
+      .item-to-animate {
+        position: absolute;
+        top:0;
+        left:0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class='big-div'>
+      <div class='item-to-move'>ITEM TO MOVE</div>
+      <button class='move-button'>CLICK ME!</button>
+      <button class='reset-button'>RESET</button>
+    </div>
+    <div class='another-div'>
+      <div class='another-item-to-move'>ANOTHER ITEM TO MOVE</div>
+      <div class='item-to-animate'>ITEM TO ANIMATE</div>
+    </div>
+  </body>
+  <script>
+    var TARGET_TOP_PIXELS = 50;
+    var moveButton = document.querySelector('.move-button')
+    var item = document.querySelector('.item-to-move')
+    var resetButton = document.querySelector('.reset-button')
+    var anotherDiv = document.querySelector('.another-div')
+    var movedAnotherItem = false
+
+    var easing = function (t) { return t < 0.5 ? 4 * t * t * t : (t - 1) * (2 * t - 2) * (2 * t - 2) + 1 }
+
+    var moveTheThing = function (duration) {
+      var topOfElement = item.getBoundingClientRect().top
+
+      var diff = TARGET_TOP_PIXELS - topOfElement
+
+      if (!diff) return
+
+      var start
+
+      window.requestAnimationFrame(function step (timestamp) {
+        if (!start) start = timestamp
+
+        var time = timestamp - start
+
+        var percent = Math.min(time / duration, 1)
+
+        percent = easing(percent)
+
+        item.style.top = `${topOfElement + (diff * percent)}px`
+
+        if (time < duration) {
+          window.requestAnimationFrame(step)
+        }
+      })
+    }
+
+    moveButton.addEventListener('click', function () {
+      moveTheThing(2000)
+    })
+
+    resetButton.addEventListener('click', function () {
+      var item = document.querySelector('.item-to-move')
+
+      item.style.top = '300px'
+    })
+
+    var getElement = function (elementSelector) {
+      return document.querySelector(elementSelector)
+    }
+
+    var getTopOfElement = function (elementSelector) {
+      return getElement(elementSelector).getBoundingClientRect().top
+    }
+
+    var getTopOfElementRelativeToParent = function (elementSelector) {
+      return getElement(elementSelector).offsetTop
+    }
+
+    var elementIsOnScreen = function (elementSelector) {
+      topOfElement = getTopOfElement(elementSelector)
+
+      return topOfElement < window.innerHeight
+    }
+
+    var elementYPositionAsPercentageOfWindowHeight = function (elementSelector) {
+      return Math.floor((getTopOfElement(elementSelector) / window.innerHeight) * 100)
+    }
+
+    var moveAThing = function (elementSelector, duration) {
+      var element = getElement(elementSelector)
+      var topOfElementRelativeToParent = getTopOfElementRelativeToParent(elementSelector)
+      var diff = TARGET_TOP_PIXELS - topOfElement
+      var start
+
+      if (!diff) return
+
+      window.requestAnimationFrame(function step (timestamp) {
+        if (!start) start = timestamp
+
+        var time = timestamp - start
+
+        var percent = Math.min(time / duration, 1)
+
+        percent = easing(percent)
+
+        element.style.top = `${topOfElement + (diff * percent)}px`
+
+        if (time < duration) {
+          window.requestAnimationFrame(step)
+        }
+      })
+    }
+
+    window.addEventListener('scroll', function () {
+      if (movedAnotherItem) return
+
+      if (elementIsOnScreen('.another-div')) {
+        if (elementYPositionAsPercentageOfWindowHeight('.another-div') < 80) {
+          movedAnotherItem = true
+          moveAThing('.another-item-to-move', 1000)
+        }
+      }
+    })
+
+    var directions = {
+      NORTH: {
+        x: -10,
+        y: 0
+      },
+      NORTH_EAST: {
+        x: -10,
+        y: 10
+      },
+      EAST: {
+        x: 0,
+        y: 10
+      },
+      SOUTH_EAST: {
+        x: 10,
+        y: 10
+      },
+      SOUTH: {
+        x: 10,
+        y: 0
+      },
+      SOUTH_WEST: {
+        x: 10,
+        y: -10
+      },
+      WEST: {
+        x: 0,
+        y: -10
+      },
+      NORTH_WEST: {
+        x: -10,
+        y:-10
+      }
+    }
+
+    var topPos = 0
+    var leftPos = 0
+
+    var minTop = 0
+    var minLeft = 0
+
+    var maxTop = 100
+    var maxLeft = 100
+
+    function animateAnItem () {
+      var item = document.querySelector('.item-to-animate')
+
+      setInterval(frame, 160)
+
+      function frame() {
+        if (!item.style.top) item.style.top = `${topPos}px`
+        if (!item.style.left) item.style.left = `${leftPos}px`
+
+        var possibleDirectionsLength = Object.keys(directions).length
+        var randomDirectionIndex = Math.floor(Math.random() * possibleDirectionsLength)
+        var direction = directions[Object.keys(directions)[randomDirectionIndex]]
+
+        var newTopPos = topPos + direction.x
+        var newLeftPos = leftPos + direction.y
+
+        if (newTopPos >= maxTop || newLeftPos > maxLeft || newTopPos < minTop || newLeftPos < minLeft) return
+
+        topPos = newTopPos
+        leftPos = newLeftPos
+
+        item.style.top = `${topPos}px`
+        item.style.left = `${leftPos}px`
+      }
+    }
+
+    animateAnItem()
+
+  </script>
+</html>
